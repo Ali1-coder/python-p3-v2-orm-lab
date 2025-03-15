@@ -66,12 +66,20 @@ class Review:
     def instance_from_db(cls, row):
         """Return an Review instance having the attribute values from the table row."""
         # Check the dictionary for  existing instance using the row's primary key
-        if row[0] in cls.all:
-            return cls.all[row[0]]
-        review = cls(row[1], row[2], row[3], row[0])
-        cls.all[row[0]] = review
+        review_id, year, summary, employee_id = row
+
+    # If the instance already exists in the dictionary, update its attributes
+        if review_id in cls.all:
+            existing_review = cls.all[review_id]
+            existing_review.year = year
+            existing_review.summary = summary
+            existing_review.employee_id = employee_id
+            return existing_review
+
+    # Otherwise, create a new instance and store it in the dictionary
+        review = cls(year, summary, employee_id, review_id)
+        cls.all[review_id] = review
         return review
-   
 
     @classmethod
     def find_by_id(cls, id):
@@ -104,3 +112,37 @@ class Review:
         rows = CURSOR.fetchall()
         return [cls.instance_from_db(row) for row in rows]
 
+    # Property methods
+    @property
+    def year(self):
+        return self._year
+
+    @year.setter
+    def year(self, value):
+        if isinstance(value, int) and value >= 2000:
+            self._year = value
+        else:
+            raise ValueError("Year must be an integer greater than or equal to 2000")
+
+    @property
+    def summary(self):
+        return self._summary
+
+    @summary.setter
+    def summary(self, value):
+        if isinstance(value, str) and len(value) > 0:
+            self._summary = value
+        else:
+            raise ValueError("Summary must be a non-empty string")
+
+    @property
+    def employee_id(self):
+        return self._employee_id
+
+    @employee_id.setter
+    def employee_id(self, value):
+        CURSOR.execute("SELECT id FROM employees WHERE id=?", (value,))
+        if CURSOR.fetchone():
+            self._employee_id = value
+        else:
+            raise ValueError("Employee ID must reference an existing employee")
